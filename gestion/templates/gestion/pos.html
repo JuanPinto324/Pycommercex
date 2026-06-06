@@ -1,0 +1,318 @@
+{% extends 'gestion/base.html' %}
+{% load moneda %}
+
+{% block title %}Punto de venta - PyCommerceX{% endblock %}
+{% block menu_venta %}active{% endblock %}
+
+{% block content %}
+<form id="csrf-form" class="d-none">{% csrf_token %}</form>
+
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+    <div>
+        <h1 class="h3 fw-bold mb-1">Punto de venta</h1>
+        <p class="text-muted mb-0">Registra el cliente, arma el ticket y descuenta stock en tiempo real.</p>
+    </div>
+    <span class="badge text-bg-primary-subtle text-primary border border-primary-subtle px-3 py-2">
+        Operador: {{ request.session.usuario_nombre|default:"Cajero" }}
+    </span>
+</div>
+
+<div class="row g-3">
+    <div class="col-xl-7">
+        <section class="panel">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 border-bottom px-3 py-3">
+                <div>
+                    <h2 class="h5 fw-bold mb-0">Productos disponibles</h2>
+                    <small class="text-muted">Solo se muestran productos con stock mayor a cero</small>
+                </div>
+                <div class="input-group" style="max-width: 360px;">
+                    <span class="input-group-text bg-white"><i class="fa-solid fa-barcode"></i></span>
+                    <input id="buscador-pos" type="search" class="form-control" placeholder="Codigo o nombre" autofocus>
+                </div>
+            </div>
+            <div class="table-responsive max-table">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th>Codigo</th>
+                            <th>Producto</th>
+                            <th>Stock</th>
+                            <th>Precio</th>
+                            <th class="text-end">Accion</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-pos">
+                        {% for producto in productos %}
+                        <tr data-search="{{ producto.codigo }} {{ producto.nombre }}">
+                            <td><code>{{ producto.codigo }}</code></td>
+                            <td class="fw-semibold">{{ producto.nombre }}</td>
+                            <td>{{ producto.cantidad_stock }}</td>
+                            <td class="fw-bold text-money">${{ producto.precio_venta|pesos }}</td>
+                            <td class="text-end">
+                                <button type="button"
+                                        class="btn btn-sm btn-primary btn-icon btn-agregar"
+                                        data-id="{{ producto.id_producto }}"
+                                        data-nombre="{{ producto.nombre }}"
+                                        data-precio="{{ producto.precio_venta|entero }}"
+                                        data-stock="{{ producto.cantidad_stock }}">
+                                    <i class="fa-solid fa-plus"></i> Agregar
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-5">No hay productos disponibles para vender.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <div class="col-xl-5">
+        <section class="panel">
+            <div class="border-bottom px-3 py-3">
+                <h2 class="h5 fw-bold mb-0">Ticket actual</h2>
+                <small class="text-muted">El total final se recalcula en servidor al procesar.</small>
+            </div>
+            <div class="p-3">
+                <div class="border-bottom pb-3 mb-3">
+                    <h3 class="h6 fw-bold mb-3">Datos del cliente</h3>
+                    <div class="row g-2">
+                        <div class="col-md-5">
+                            <label class="form-label small fw-bold text-muted">Identificacion</label>
+                            <input id="cliente-identificacion" type="text" class="form-control" maxlength="20" placeholder="Documento" required>
+                        </div>
+                        <div class="col-md-7">
+                            <label class="form-label small fw-bold text-muted">Nombre</label>
+                            <input id="cliente-nombre" type="text" class="form-control" maxlength="120" placeholder="Nombre completo" required>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label small fw-bold text-muted">Telefono</label>
+                            <input id="cliente-telefono" type="text" class="form-control" maxlength="30" placeholder="Opcional">
+                        </div>
+                        <div class="col-md-7">
+                            <label class="form-label small fw-bold text-muted">Correo</label>
+                            <input id="cliente-correo" type="email" class="form-control" maxlength="120" placeholder="Opcional">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="lista-carrito" style="min-height: 260px; max-height: 420px; overflow-y: auto;">
+                    <div class="text-center text-muted py-5">
+                        <i class="fa-solid fa-basket-shopping fa-3x mb-3 text-black-50"></i>
+                        <p class="mb-0">El carrito esta vacio.</p>
+                    </div>
+                </div>
+
+                <div class="border-top pt-3 mt-3">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted fw-semibold">Total estimado</span>
+                        <span class="h2 fw-bold text-money mb-0">$<span id="total-pagar">0</span></span>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-success btn-lg btn-icon" id="btn-procesar" type="button">
+                            <i class="fa-solid fa-check-double"></i> Procesar venta
+                        </button>
+                        <button class="btn btn-light border btn-icon" id="btn-limpiar" type="button">
+                            <i class="fa-solid fa-trash"></i> Limpiar carrito
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="toast-pos" class="toast" role="status" aria-live="polite" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto">PyCommerceX</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+        </div>
+        <div class="toast-body" id="toast-pos-body"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const carrito = [];
+    const totalElemento = document.getElementById('total-pagar');
+    const listaCarrito = document.getElementById('lista-carrito');
+    const toastEl = document.getElementById('toast-pos');
+    const toastBody = document.getElementById('toast-pos-body');
+    const toast = bootstrap.Toast.getOrCreateInstance(toastEl);
+
+    function moneda(valor) {
+        return new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 }).format(Math.round(Number(valor) || 0));
+    }
+
+    function escapeHtml(texto) {
+        const div = document.createElement('div');
+        div.textContent = texto;
+        return div.innerHTML;
+    }
+
+    function notificar(mensaje) {
+        toastBody.textContent = mensaje;
+        toast.show();
+    }
+
+    function renderCarrito() {
+        listaCarrito.innerHTML = '';
+        let total = 0;
+
+        if (carrito.length === 0) {
+            listaCarrito.innerHTML = `
+                <div class="text-center text-muted py-5">
+                    <i class="fa-solid fa-basket-shopping fa-3x mb-3 text-black-50"></i>
+                    <p class="mb-0">El carrito esta vacio.</p>
+                </div>`;
+            totalElemento.textContent = '0';
+            return;
+        }
+
+        const tabla = document.createElement('table');
+        tabla.className = 'table table-sm align-middle';
+        tabla.innerHTML = '<tbody></tbody>';
+        const tbody = tabla.querySelector('tbody');
+
+        carrito.forEach((item, index) => {
+            const subtotal = item.precio * item.cantidad;
+            total += subtotal;
+            const fila = document.createElement('tr');
+            fila.innerHTML = `
+                <td>
+                    <div class="fw-semibold">${escapeHtml(item.nombre)}</div>
+                    <small class="text-muted">Stock disp.: ${item.stock}</small>
+                </td>
+                <td style="width: 132px;">
+                    <div class="input-group input-group-sm">
+                        <button class="btn btn-outline-secondary" type="button" onclick="cambiarCantidad(${index}, -1)">-</button>
+                        <span class="input-group-text bg-white">${item.cantidad}</span>
+                        <button class="btn btn-outline-secondary" type="button" onclick="cambiarCantidad(${index}, 1)">+</button>
+                    </div>
+                </td>
+                <td class="text-end fw-bold text-money">$${moneda(subtotal)}</td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-danger border-0" type="button" onclick="eliminarDelCarrito(${index})" title="Quitar">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>`;
+            tbody.appendChild(fila);
+        });
+
+        listaCarrito.appendChild(tabla);
+        totalElemento.textContent = moneda(total);
+    }
+
+    function agregarProducto(boton) {
+        const id = Number(boton.dataset.id);
+        const nombre = boton.dataset.nombre;
+        const precio = Number(boton.dataset.precio);
+        const stock = Number(boton.dataset.stock);
+        const existente = carrito.find(item => item.id === id);
+
+        if (existente) {
+            if (existente.cantidad >= stock) {
+                notificar(`No hay mas stock disponible para ${nombre}.`);
+                return;
+            }
+            existente.cantidad += 1;
+        } else {
+            carrito.push({ id, nombre, precio, stock, cantidad: 1 });
+        }
+        renderCarrito();
+    }
+
+    function cambiarCantidad(index, delta) {
+        const item = carrito[index];
+        const nuevaCantidad = item.cantidad + delta;
+        if (nuevaCantidad <= 0) {
+            eliminarDelCarrito(index);
+            return;
+        }
+        if (nuevaCantidad > item.stock) {
+            notificar(`Stock maximo disponible: ${item.stock}.`);
+            return;
+        }
+        item.cantidad = nuevaCantidad;
+        renderCarrito();
+    }
+
+    function eliminarDelCarrito(index) {
+        carrito.splice(index, 1);
+        renderCarrito();
+    }
+
+    document.querySelectorAll('.btn-agregar').forEach((boton) => {
+        boton.addEventListener('click', () => agregarProducto(boton));
+    });
+
+    document.getElementById('btn-limpiar').addEventListener('click', () => {
+        carrito.splice(0, carrito.length);
+        renderCarrito();
+    });
+
+    document.getElementById('btn-procesar').addEventListener('click', async function() {
+        if (carrito.length === 0) {
+            notificar('Agrega productos antes de procesar la venta.');
+            return;
+        }
+
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const payload = carrito.map(({ id, cantidad }) => ({ id, cantidad }));
+        const cliente = {
+            identificacion: document.getElementById('cliente-identificacion').value.trim(),
+            nombre: document.getElementById('cliente-nombre').value.trim(),
+            telefono: document.getElementById('cliente-telefono').value.trim(),
+            correo: document.getElementById('cliente-correo').value.trim()
+        };
+
+        if (cliente.identificacion.length < 4 || cliente.nombre.length < 2) {
+            notificar('Ingresa identificacion y nombre del cliente antes de procesar.');
+            return;
+        }
+
+        this.disabled = true;
+
+        try {
+            const response = await fetch('{% url "guardar_venta" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify({ carrito: payload, cliente })
+            });
+            const data = await response.json();
+            if (!response.ok || data.error) {
+                throw new Error(data.error || 'No fue posible registrar la venta.');
+            }
+            notificar(`Venta #${data.id_venta} registrada por $${data.total}.`);
+            carrito.splice(0, carrito.length);
+            document.getElementById('cliente-identificacion').value = '';
+            document.getElementById('cliente-nombre').value = '';
+            document.getElementById('cliente-telefono').value = '';
+            document.getElementById('cliente-correo').value = '';
+            renderCarrito();
+            setTimeout(() => window.location.reload(), 900);
+        } catch (error) {
+            notificar(error.message);
+        } finally {
+            this.disabled = false;
+        }
+    });
+
+    const buscador = document.getElementById('buscador-pos');
+    const filas = Array.from(document.querySelectorAll('#tabla-pos tr[data-search]'));
+    buscador?.addEventListener('input', () => {
+        const termino = buscador.value.trim().toLowerCase();
+        filas.forEach((fila) => {
+            fila.classList.toggle('d-none', !fila.dataset.search.toLowerCase().includes(termino));
+        });
+    });
+</script>
+{% endblock %}

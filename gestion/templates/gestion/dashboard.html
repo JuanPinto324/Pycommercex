@@ -1,0 +1,131 @@
+{% extends 'gestion/base.html' %}
+{% load moneda %}
+
+{% block title %}Panel - PyCommerceX{% endblock %}
+{% block menu_dashboard %}active{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+    <div>
+        <h1 class="h3 fw-bold mb-1">Panel de inventario</h1>
+        <p class="text-muted mb-0">Resumen diario, alertas de reposicion y acceso rapido a operaciones.</p>
+    </div>
+    <a href="{% url 'pos' %}" class="btn btn-primary btn-icon">
+        <i class="fa-solid fa-cash-register"></i> Nueva venta
+    </a>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-6 col-xl-3">
+        <div class="kpi-card p-3">
+            <div class="d-flex justify-content-between">
+                <span class="text-muted fw-semibold small">Ventas de hoy</span>
+                <i class="fa-solid fa-sack-dollar text-primary"></i>
+            </div>
+            <div class="h3 fw-bold text-money mt-3 mb-1">${{ ventas_hoy|pesos }}</div>
+            <small class="text-muted">{{ facturas_hoy }} facturas emitidas</small>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="kpi-card p-3">
+            <div class="d-flex justify-content-between">
+                <span class="text-muted fw-semibold small">Catalogo activo</span>
+                <i class="fa-solid fa-box text-success"></i>
+            </div>
+            <div class="h3 fw-bold mt-3 mb-1">{{ total_productos }}</div>
+            <small class="text-muted">{{ unidades_stock }} unidades en inventario</small>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="kpi-card p-3">
+            <div class="d-flex justify-content-between">
+                <span class="text-muted fw-semibold small">Alertas</span>
+                <i class="fa-solid fa-triangle-exclamation text-warning"></i>
+            </div>
+            <div class="h3 fw-bold mt-3 mb-1">{{ total_alertas }}</div>
+            <small class="text-muted">{{ productos_agotados }} productos agotados</small>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="kpi-card p-3">
+            <div class="d-flex justify-content-between">
+                <span class="text-muted fw-semibold small">Estado</span>
+                <i class="fa-solid fa-shield-halved text-info"></i>
+            </div>
+            <div class="h3 fw-bold mt-3 mb-1">{% if total_alertas %}Atencion{% else %}Optimo{% endif %}</div>
+            <small class="text-muted">Control segun stock minimo</small>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-xl-8">
+        <section class="panel">
+            <div class="d-flex justify-content-between align-items-center border-bottom px-3 py-3">
+                <div>
+                    <h2 class="h5 fw-bold mb-0">Reposicion prioritaria</h2>
+                    <small class="text-muted">Productos en minimo o agotados</small>
+                </div>
+                {% if total_alertas %}
+                    <span class="badge text-bg-danger">Accion requerida</span>
+                {% else %}
+                    <span class="badge text-bg-success">Sin alertas</span>
+                {% endif %}
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Codigo</th>
+                            <th>Producto</th>
+                            <th>Stock</th>
+                            <th>Minimo</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for producto in productos_criticos %}
+                        <tr>
+                            <td><code>{{ producto.codigo }}</code></td>
+                            <td class="fw-semibold">{{ producto.nombre }}</td>
+                            <td class="fw-bold">{{ producto.cantidad_stock }}</td>
+                            <td>{{ producto.stock_minimo }}</td>
+                            <td>
+                                {% if producto.esta_agotado %}
+                                    <span class="badge text-bg-danger">Agotado</span>
+                                {% else %}
+                                    <span class="badge text-bg-warning">Bajo</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-5">El inventario esta por encima de sus puntos minimos.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+    <div class="col-xl-4">
+        <section class="panel p-3">
+            <h2 class="h5 fw-bold mb-3">Acciones rapidas</h2>
+            <div class="d-grid gap-2">
+                <a href="{% url 'pos' %}" class="btn btn-outline-primary btn-icon justify-content-between p-3">
+                    <span><i class="fa-solid fa-cart-plus me-2"></i>Abrir caja</span>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </a>
+                <a href="{% url 'productos' %}" class="btn btn-outline-secondary btn-icon justify-content-between p-3">
+                    <span><i class="fa-solid fa-box-open me-2"></i>Gestionar inventario</span>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </a>
+                <a href="{% url 'historial' %}" class="btn btn-outline-secondary btn-icon justify-content-between p-3">
+                    <span><i class="fa-solid fa-file-invoice-dollar me-2"></i>Auditar ventas</span>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </a>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}

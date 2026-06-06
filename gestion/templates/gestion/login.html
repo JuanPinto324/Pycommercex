@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ingresar - PyCommerceX</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            align-items: center;
+            background: #f4f6f9;
+            display: flex;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            padding: 24px;
+        }
+        .login-shell {
+            max-width: 980px;
+            width: 100%;
+        }
+        .login-panel {
+            background: #fff;
+            border: 1px solid #e7eaf0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .login-aside {
+            background: #1f252d;
+            color: #fff;
+            min-height: 460px;
+        }
+        .brand-mark {
+            align-items: center;
+            background: #0d6efd;
+            border-radius: 8px;
+            display: inline-flex;
+            height: 48px;
+            justify-content: center;
+            width: 48px;
+        }
+    </style>
+</head>
+<body>
+    <main class="login-shell mx-auto">
+        <div class="login-panel shadow-sm">
+            <div class="row g-0">
+                <section class="col-lg-6 login-aside d-flex flex-column justify-content-between p-4">
+                    <div>
+                        <span class="brand-mark mb-3"><i class="fa-solid fa-store fa-lg"></i></span>
+                        <h1 class="fw-bold mb-2">PyCommerceX</h1>
+                        <p class="text-white-50 mb-0">Inventario, punto de venta y control operativo para comercio.</p>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <div class="border border-secondary-subtle rounded p-3">
+                                <i class="fa-solid fa-boxes-stacked text-primary mb-2"></i>
+                                <div class="small text-white-50">Stock en tiempo real</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border border-secondary-subtle rounded p-3">
+                                <i class="fa-solid fa-shield-halved text-primary mb-2"></i>
+                                <div class="small text-white-50">Acceso por roles</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <section class="col-lg-6 p-4 p-lg-5">
+                    <div class="mb-4">
+                        <h2 class="h4 fw-bold mb-1">Acceso al sistema</h2>
+                        <p class="text-muted mb-0">Ingresa con tu identificacion, contrasena y verificacion de seguridad.</p>
+                    </div>
+
+                    {% if error %}
+                    <div class="alert alert-danger" role="alert">
+                        <i class="fa-solid fa-triangle-exclamation me-1"></i> {{ error }}
+                    </div>
+                    {% endif %}
+
+                    <form method="POST" action="{% url 'login' %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted">Identificacion</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white"><i class="fa-regular fa-id-card"></i></span>
+                                <input type="text" class="form-control" name="identificacion" autocomplete="username" required autofocus>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-muted">Contrasena</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white"><i class="fa-solid fa-lock"></i></span>
+                                <input type="password" class="form-control" name="password" autocomplete="current-password" required>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-muted">Verificacion anti-bot</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white fw-bold">{{ captcha_pregunta }} =</span>
+                                <input type="number" class="form-control" name="captcha" inputmode="numeric" autocomplete="off" placeholder="Respuesta" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
+                            <i class="fa-solid fa-right-to-bracket me-1"></i> Ingresar
+                        </button>
+                    </form>
+                </section>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

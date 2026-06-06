@@ -1,0 +1,33 @@
+{% load moneda %}
+<div class="row g-3">
+    <div class="col-md-4">
+        <label class="form-label small fw-bold text-muted">Codigo unico</label>
+        <input type="text" class="form-control" name="codigo" value="{{ producto.codigo|default:'' }}" placeholder="PROD-001" required>
+    </div>
+    <div class="col-md-8">
+        <label class="form-label small fw-bold text-muted">Nombre del producto</label>
+        <input type="text" class="form-control" name="nombre" value="{{ producto.nombre|default:'' }}" placeholder="Descripcion clara" required>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label small fw-bold text-muted">Precio costo</label>
+        <div class="input-group">
+            <span class="input-group-text">$</span>
+            <input type="number" min="0" step="1" class="form-control" name="precio_costo" value="{{ producto.precio_costo|entero|default:'' }}" required>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label small fw-bold text-muted">Precio venta</label>
+        <div class="input-group">
+            <span class="input-group-text">$</span>
+            <input type="number" min="0" step="1" class="form-control" name="precio_venta" value="{{ producto.precio_venta|entero|default:'' }}" required>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label small fw-bold text-muted">Stock actual</label>
+        <input type="number" min="0" step="1" class="form-control" name="cantidad_stock" value="{{ producto.cantidad_stock|default:0 }}" required>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label small fw-bold text-muted">Stock minimo</label>
+        <input type="number" min="0" step="1" class="form-control" name="stock_minimo" value="{{ producto.stock_minimo|default:5 }}" required>
+    </div>
+</div>
