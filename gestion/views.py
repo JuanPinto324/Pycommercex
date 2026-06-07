@@ -4,7 +4,7 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from functools import wraps
 import json
 import random
-
+from django.db import connection
 from django.contrib import messages
 from django.contrib.auth.hashers import check_password, make_password
 from django.db import transaction
@@ -377,26 +377,28 @@ def login_view(request):
     if request.method == 'POST':
         identificacion = (request.POST.get('identificacion') or '').strip()
         password = request.POST.get('password') or ''
-        captcha_respuesta = (request.POST.get('captcha') or '').strip()
 
         try:
-            #if captcha_respuesta != request.session.get('captcha_login'):
-                #return _render_login(request, 'Verificacion incorrecta. Resuelve nuevamente el CAPTCHA.')
-
+            # Buscamos el usuario directamente en la base de datos
+            # Usamos el modelo, pero si falla, sabremos que es un tema de configuración
             usuario = Usuario.objects.get(identificacion=identificacion)
+            
             if not usuario.activo:
                 return _render_login(request, 'Usuario inactivo. Contacta al administrador.')
 
+            # Verificamos la contraseña
             password_ok = check_password(password, usuario.password)
-            es_password_legacy = usuario.password == password
+            es_password_legacy = (usuario.password == password)
 
             if not password_ok and not es_password_legacy:
-                raise Usuario.DoesNotExist
+                return _render_login(request, 'Credenciales incorrectas.')
 
+            # Si la contraseña es legacy, la actualizamos a formato hash
             if es_password_legacy:
                 usuario.password = make_password(password)
                 usuario.save(update_fields=['password'])
 
+            # Iniciamos sesión
             request.session.cycle_key()
             request.session['usuario_id'] = usuario.id_usuario
             request.session['usuario_nombre'] = usuario.nombre
@@ -407,6 +409,9 @@ def login_view(request):
             return redirect('pos')
 
         except Usuario.DoesNotExist:
+            # ERROR CRÍTICO: Si llega aquí, es que NO encuentra el usuario
+            # Vamos a imprimir el error en los logs de Render para depurar
+            print(f"DEBUG: No se encontró usuario con identificacion: {identificacion}")
             return _render_login(request, 'No existe un usuario con esta identificacion.')
 
     return _render_login(request)
