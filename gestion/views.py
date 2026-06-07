@@ -380,8 +380,8 @@ def login_view(request):
         captcha_respuesta = (request.POST.get('captcha') or '').strip()
 
         try:
-            if captcha_respuesta != request.session.get('captcha_login'):
-                return _render_login(request, 'Verificacion incorrecta. Resuelve nuevamente el CAPTCHA.')
+            #if captcha_respuesta != request.session.get('captcha_login'):
+                #return _render_login(request, 'Verificacion incorrecta. Resuelve nuevamente el CAPTCHA.')
 
             usuario = Usuario.objects.get(identificacion=identificacion)
             if not usuario.activo:
