@@ -407,7 +407,7 @@ def login_view(request):
             return redirect('pos')
 
         except Usuario.DoesNotExist:
-            return _render_login(request, 'No existe el usuario con id {identificacion}')
+            return _render_login(request, 'No existe un usuario con esta identificacion.')
 
     return _render_login(request)
 
